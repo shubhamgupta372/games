@@ -101,6 +101,14 @@ def run_game(stdscr):
     stdscr.nodelay(1)
     stdscr.timeout(100)
     
+    # Initialize colors
+    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)      # Snake head
+    curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)       # Snake body
+    curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)        # Food
+    curses.init_pair(4, curses.COLOR_YELLOW, curses.COLOR_BLACK)     # Border
+    curses.init_pair(5, curses.COLOR_WHITE, curses.COLOR_BLACK)      # Text
+    curses.init_pair(6, curses.COLOR_MAGENTA, curses.COLOR_BLACK)    # Score
+    
     # Get terminal dimensions
     max_height, max_width = stdscr.getmaxyx()
     game_width = min(60, max_width - 4)
@@ -131,36 +139,40 @@ def run_game(stdscr):
         
         # Draw border
         for i in range(game_width + 2):
-            stdscr.addch(0, i, '#')
-            stdscr.addch(game_height + 1, i, '#')
+            stdscr.addch(0, i, '#', curses.color_pair(4) | curses.A_BOLD)
+            stdscr.addch(game_height + 1, i, '#', curses.color_pair(4) | curses.A_BOLD)
         for i in range(game_height + 2):
-            stdscr.addch(i, 0, '#')
-            stdscr.addch(i, game_width + 1, '#')
+            stdscr.addch(i, 0, '#', curses.color_pair(4) | curses.A_BOLD)
+            stdscr.addch(i, game_width + 1, '#', curses.color_pair(4) | curses.A_BOLD)
         
         # Draw snake
         for idx, (row, col) in enumerate(game.snake):
-            char = '@' if idx == 0 else 'o'
-            stdscr.addch(row + 1, col + 1, char)
+            if idx == 0:
+                # Head with special character
+                stdscr.addch(row + 1, col + 1, '◉', curses.color_pair(1) | curses.A_BOLD)
+            else:
+                # Body segments
+                stdscr.addch(row + 1, col + 1, '●', curses.color_pair(2))
         
         # Draw food
         food_row, food_col = game.food
-        stdscr.addch(food_row + 1, food_col + 1, '*')
+        stdscr.addch(food_row + 1, food_col + 1, '★', curses.color_pair(3) | curses.A_BOLD)
         
         # Draw score
         score_text = f"Score: {game.score}"
-        stdscr.addstr(game_height + 3, 1, score_text)
+        stdscr.addstr(game_height + 3, 1, score_text, curses.color_pair(6) | curses.A_BOLD)
         
         # Draw instructions
         info_text = "Controls: WASD or Arrow Keys | Q to quit"
-        stdscr.addstr(game_height + 4, 1, info_text)
+        stdscr.addstr(game_height + 4, 1, info_text, curses.color_pair(5))
         
         stdscr.refresh()
     
     # Game over screen
     stdscr.clear()
-    stdscr.addstr(max_height // 2, max_width // 2 - 8, "GAME OVER!")
-    stdscr.addstr(max_height // 2 + 2, max_width // 2 - 12, f"Final Score: {game.score}")
-    stdscr.addstr(max_height // 2 + 4, max_width // 2 - 15, "Press any key to exit...")
+    stdscr.addstr(max_height // 2, max_width // 2 - 8, "GAME OVER!", curses.color_pair(3) | curses.A_BOLD)
+    stdscr.addstr(max_height // 2 + 2, max_width // 2 - 12, f"Final Score: {game.score}", curses.color_pair(6) | curses.A_BOLD)
+    stdscr.addstr(max_height // 2 + 4, max_width // 2 - 15, "Press any key to exit...", curses.color_pair(5))
     stdscr.refresh()
     stdscr.getch()
 

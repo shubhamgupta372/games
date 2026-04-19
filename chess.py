@@ -9,26 +9,43 @@ from enum import Enum
 from typing import List, Tuple, Optional
 
 
-class PieceType(Enum):
-    PAWN = "P"
-    ROOK = "R"
-    KNIGHT = "N"
-    BISHOP = "B"
-    QUEEN = "Q"
-    KING = "K"
+# Unicode chess piece symbols
+PIECE_SYMBOLS = {
+    ('KING', True): '♔',
+    ('QUEEN', True): '♕',
+    ('ROOK', True): '♖',
+    ('BISHOP', True): '♗',
+    ('KNIGHT', True): '♘',
+    ('PAWN', True): '♙',
+    ('KING', False): '♚',
+    ('QUEEN', False): '♛',
+    ('ROOK', False): '♜',
+    ('BISHOP', False): '♝',
+    ('KNIGHT', False): '♞',
+    ('PAWN', False): '♟',
+}
+
+# ANSI color codes
+class Colors:
+    WHITE_PIECE = '\033[97m'      # Bright white
+    BLACK_PIECE = '\033[90m'      # Bright black/gray
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
 
 
 class Piece:
-    def __init__(self, piece_type: PieceType, is_white: bool):
+    def __init__(self, piece_type: str, is_white: bool):
         self.type = piece_type
         self.is_white = is_white
     
     def __str__(self):
-        char = self.type.value
-        return char if self.is_white else char.lower()
+        symbol = PIECE_SYMBOLS.get((self.type, self.is_white), '?')
+        color = Colors.WHITE_PIECE if self.is_white else Colors.BLACK_PIECE
+        return f"{color}{Colors.BOLD}{symbol}{Colors.RESET}"
     
     def __repr__(self):
-        return self.__str__()
+        symbol = PIECE_SYMBOLS.get((self.type, self.is_white), '?')
+        return symbol
 
 
 class ChessBoard:
@@ -39,45 +56,50 @@ class ChessBoard:
     def _setup_board(self):
         """Initialize standard chess starting position"""
         # Black pieces (top)
-        self.board[0][0] = Piece(PieceType.ROOK, False)
-        self.board[0][1] = Piece(PieceType.KNIGHT, False)
-        self.board[0][2] = Piece(PieceType.BISHOP, False)
-        self.board[0][3] = Piece(PieceType.QUEEN, False)
-        self.board[0][4] = Piece(PieceType.KING, False)
-        self.board[0][5] = Piece(PieceType.BISHOP, False)
-        self.board[0][6] = Piece(PieceType.KNIGHT, False)
-        self.board[0][7] = Piece(PieceType.ROOK, False)
+        self.board[0][0] = Piece('ROOK', False)
+        self.board[0][1] = Piece('KNIGHT', False)
+        self.board[0][2] = Piece('BISHOP', False)
+        self.board[0][3] = Piece('QUEEN', False)
+        self.board[0][4] = Piece('KING', False)
+        self.board[0][5] = Piece('BISHOP', False)
+        self.board[0][6] = Piece('KNIGHT', False)
+        self.board[0][7] = Piece('ROOK', False)
         
         for i in range(8):
-            self.board[1][i] = Piece(PieceType.PAWN, False)
+            self.board[1][i] = Piece('PAWN', False)
         
         # White pieces (bottom)
         for i in range(8):
-            self.board[6][i] = Piece(PieceType.PAWN, True)
+            self.board[6][i] = Piece('PAWN', True)
         
-        self.board[7][0] = Piece(PieceType.ROOK, True)
-        self.board[7][1] = Piece(PieceType.KNIGHT, True)
-        self.board[7][2] = Piece(PieceType.BISHOP, True)
-        self.board[7][3] = Piece(PieceType.QUEEN, True)
-        self.board[7][4] = Piece(PieceType.KING, True)
-        self.board[7][5] = Piece(PieceType.BISHOP, True)
-        self.board[7][6] = Piece(PieceType.KNIGHT, True)
-        self.board[7][7] = Piece(PieceType.ROOK, True)
+        self.board[7][0] = Piece('ROOK', True)
+        self.board[7][1] = Piece('KNIGHT', True)
+        self.board[7][2] = Piece('BISHOP', True)
+        self.board[7][3] = Piece('QUEEN', True)
+        self.board[7][4] = Piece('KING', True)
+        self.board[7][5] = Piece('BISHOP', True)
+        self.board[7][6] = Piece('KNIGHT', True)
+        self.board[7][7] = Piece('ROOK', True)
     
     def display(self):
         """Display the board"""
-        print("\n    a b c d e f g h")
-        print("  ┌─────────────────┐")
+        print("\n    " + "  ".join(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']))
+        print("  ┌─" + "─ ".join(['──'] * 8) + "─┐")
         for i in range(8):
-            print(f"{8-i} │", end="")
+            print(f"{8-i} │ ", end="")
             for j in range(8):
                 piece = self.board[i][j]
                 if piece:
-                    print(f" {piece}", end="")
+                    print(f"{piece} ", end="")
                 else:
-                    print(" .", end="")
-            print(" │" + str(8-i))
-        print("  └─────────────────┘")
+                    # Alternating board colors using background
+                    if (i + j) % 2 == 0:
+                        print(f"\033[48;5;243m  \033[0m", end="")
+                    else:
+                        print(f"  ", end="")
+            print(f"│ {8-i}")
+        print("  └─" + "─ ".join(['──'] * 8) + "─┘")
+        print("    " + "  ".join(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) + "\n")
         print("    a b c d e f g h\n")
     
     def get_piece(self, row: int, col: int) -> Optional[Piece]:
@@ -108,17 +130,17 @@ class ChessBoard:
             return False
         
         # Check piece-specific movement rules
-        if piece.type == PieceType.PAWN:
+        if piece.type == 'PAWN':
             return self._is_valid_pawn_move(piece, from_row, from_col, to_row, to_col)
-        elif piece.type == PieceType.ROOK:
+        elif piece.type == 'ROOK':
             return self._is_valid_rook_move(from_row, from_col, to_row, to_col)
-        elif piece.type == PieceType.KNIGHT:
+        elif piece.type == 'KNIGHT':
             return self._is_valid_knight_move(from_row, from_col, to_row, to_col)
-        elif piece.type == PieceType.BISHOP:
+        elif piece.type == 'BISHOP':
             return self._is_valid_bishop_move(from_row, from_col, to_row, to_col)
-        elif piece.type == PieceType.QUEEN:
+        elif piece.type == 'QUEEN':
             return self._is_valid_queen_move(from_row, from_col, to_row, to_col)
-        elif piece.type == PieceType.KING:
+        elif piece.type == 'KING':
             return self._is_valid_king_move(from_row, from_col, to_row, to_col)
         
         return False
@@ -250,58 +272,59 @@ class ChessGame:
     
     def play(self):
         """Main game loop"""
-        print("=" * 50)
-        print("        CHESS GAME")
-        print("=" * 50)
-        print("\nYou are White (bottom)")
-        print("CPU is Black (top)")
-        print("\nMove notation: e2e4 (from square to square)")
-        print("Type 'q' to quit, 'h' for help\n")
+        print("\033[2J\033[H")  # Clear screen
+        print(f"{Colors.BOLD}\033[96m{'=' * 50}")
+        print(f"        ♔ CHESS GAME ♚")
+        print(f"{'=' * 50}{Colors.RESET}")
+        print(f"\n{Colors.WHITE_PIECE}{Colors.BOLD}You are White (bottom){Colors.RESET}")
+        print(f"{Colors.BLACK_PIECE}{Colors.BOLD}CPU is Black (top){Colors.RESET}")
+        print(f"\n{Colors.BOLD}Move notation: e2e4 (from square to square){Colors.RESET}")
+        print(f"{Colors.BOLD}Type 'q' to quit, 'h' for help{Colors.RESET}\n")
         
         while True:
             self.board.display()
             
             if self.is_white_turn:
                 while True:
-                    move_input = input("Your move (e.g., e2e4): ").strip()
+                    move_input = input(f"{Colors.WHITE_PIECE}{Colors.BOLD}Your move (e.g., e2e4): {Colors.RESET}").strip()
                     
                     if move_input.lower() == 'q':
-                        print("Thanks for playing!")
+                        print(f"{Colors.BOLD}Thanks for playing!{Colors.RESET}")
                         return
                     
                     if move_input.lower() == 'h':
-                        print("Enter moves in the format: [from_square][to_square]")
-                        print("Squares are labeled a-h (columns) and 1-8 (rows)")
-                        print("Example: e2e4 moves piece from e2 to e4")
+                        print(f"{Colors.BOLD}Enter moves in the format: [from_square][to_square]{Colors.RESET}")
+                        print(f"{Colors.BOLD}Squares are labeled a-h (columns) and 1-8 (rows){Colors.RESET}")
+                        print(f"{Colors.BOLD}Example: e2e4 moves piece from e2 to e4{Colors.RESET}")
                         continue
                     
                     move = self.parse_move(move_input)
                     if not move:
-                        print("Invalid format. Use: e2e4")
+                        print(f"{Colors.BOLD}\033[91mInvalid format. Use: e2e4{Colors.RESET}")
                         continue
                     
                     from_r, from_c, to_r, to_c = move
                     if self.board.move_piece(from_r, from_c, to_r, to_c):
                         break
                     else:
-                        print("Invalid move. Try again.")
+                        print(f"{Colors.BOLD}\033[91mInvalid move. Try again.{Colors.RESET}")
                 
                 self.is_white_turn = False
             else:
-                print("CPU is thinking...")
+                print(f"{Colors.BOLD}\033[96mCPU is thinking...{Colors.RESET}")
                 import time
                 time.sleep(1)
                 
                 move = self.ai.get_best_move()
                 if not move:
-                    print("Checkmate! You win!")
+                    print(f"{Colors.BOLD}\033[92mCheckmate! You win!{Colors.RESET}")
                     return
                 
                 from_r, from_c, to_r, to_c = move
                 piece = self.board.get_piece(from_r, from_c)
                 to_col_char = chr(ord('a') + to_c)
                 to_row_num = 8 - to_r
-                print(f"CPU moves {piece} to {to_col_char}{to_row_num}")
+                print(f"{Colors.BLACK_PIECE}{Colors.BOLD}CPU moves {piece} to {to_col_char}{to_row_num}{Colors.RESET}")
                 
                 self.board.move_piece(from_r, from_c, to_r, to_c)
                 self.is_white_turn = True
