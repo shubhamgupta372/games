@@ -82,25 +82,46 @@ class ChessBoard:
         self.board[7][7] = Piece('ROOK', True)
     
     def display(self):
-        """Display the board"""
-        print("\n    " + "  ".join(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']))
-        print("  ┌─" + "─ ".join(['──'] * 8) + "─┐")
+        """Display the board with larger, colored squares"""
+        # ANSI color codes for beige and brown
+        BEIGE_BG = "\033[48;2;245;245;220m"  # Light beige
+        BROWN_BG = "\033[48;2;139;69;19m"   # Brown
+        RESET = "\033[0m"
+        BOLD = "\033[1m"
+        
+        # Column labels
+        print("\n        a           b           c           d           e           f           g           h")
+        
         for i in range(8):
-            print(f"{8-i} │ ", end="")
+            rank = 8 - i
+            
+            # Top border of square
+            print(f"    {RESET}", end="")
+            for j in range(8):
+                bg = BROWN_BG if (i + j) % 2 == 1 else BEIGE_BG
+                print(f"{bg}           {RESET}", end="")
+            print()
+            
+            # Middle row with pieces
+            print(f"  {rank} ", end="")
             for j in range(8):
                 piece = self.board[i][j]
+                bg = BROWN_BG if (i + j) % 2 == 1 else BEIGE_BG
+                
                 if piece:
-                    print(f"{piece} ", end="")
+                    print(f"{bg}{BOLD}     {piece}     {RESET}", end="")
                 else:
-                    # Alternating board colors using background
-                    if (i + j) % 2 == 0:
-                        print(f"\033[48;5;243m  \033[0m", end="")
-                    else:
-                        print(f"  ", end="")
-            print(f"│ {8-i}")
-        print("  └─" + "─ ".join(['──'] * 8) + "─┘")
-        print("    " + "  ".join(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']) + "\n")
-        print("    a b c d e f g h\n")
+                    print(f"{bg}           {RESET}", end="")
+            print(f" {rank}")
+            
+            # Bottom border of square
+            print(f"    {RESET}", end="")
+            for j in range(8):
+                bg = BROWN_BG if (i + j) % 2 == 1 else BEIGE_BG
+                print(f"{bg}           {RESET}", end="")
+            print()
+        
+        print("\n        a           b           c           d           e           f           g           h\n")
     
     def get_piece(self, row: int, col: int) -> Optional[Piece]:
         if 0 <= row < 8 and 0 <= col < 8:
