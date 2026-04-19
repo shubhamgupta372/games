@@ -18,6 +18,40 @@ class Direction(Enum):
     RIGHT = (0, 1)
 
 
+def get_direction_char(current_dir):
+    """Get snake head character based on direction"""
+    if current_dir == Direction.UP:
+        return '▲'
+    elif current_dir == Direction.DOWN:
+        return '▼'
+    elif current_dir == Direction.LEFT:
+        return '◀'
+    elif current_dir == Direction.RIGHT:
+        return '▶'
+    return '◉'
+
+
+def get_body_connector(prev_pos, curr_pos, next_pos):
+    """Determine body character based on direction of travel"""
+    # Calculate directions
+    prev_dir = (curr_pos[0] - prev_pos[0], curr_pos[1] - prev_pos[1])
+    next_dir = (next_pos[0] - curr_pos[0], next_pos[1] - curr_pos[1])
+    
+    # Normalize to get actual directions
+    prev_dir = (min(max(prev_dir[0], -1), 1), min(max(prev_dir[1], -1), 1))
+    next_dir = (min(max(next_dir[0], -1), 1), min(max(next_dir[1], -1), 1))
+    
+    # Straight line
+    if prev_dir == next_dir:
+        if prev_dir[0] != 0:  # Vertical
+            return '║'
+        else:  # Horizontal
+            return '═'
+    
+    # Turn
+    return '●'
+
+
 class SnakeGame:
     def __init__(self, height=20, width=60):
         self.height = height
@@ -146,13 +180,21 @@ def run_game(stdscr):
             stdscr.addch(i, game_width + 1, '#', curses.color_pair(4) | curses.A_BOLD)
         
         # Draw snake
-        for idx, (row, col) in enumerate(game.snake):
+        snake_list = list(game.snake)
+        for idx, (row, col) in enumerate(snake_list):
             if idx == 0:
-                # Head with special character
-                stdscr.addch(row + 1, col + 1, '◉', curses.color_pair(1) | curses.A_BOLD)
+                # Head with directional character
+                head_char = get_direction_char(game.direction)
+                stdscr.addch(row + 1, col + 1, head_char, curses.color_pair(1) | curses.A_BOLD)
+            elif idx == len(snake_list) - 1:
+                # Tail
+                stdscr.addch(row + 1, col + 1, '○', curses.color_pair(2))
             else:
-                # Body segments
-                stdscr.addch(row + 1, col + 1, '●', curses.color_pair(2))
+                # Body segments with connectors
+                prev_pos = snake_list[idx - 1]
+                next_pos = snake_list[idx + 1]
+                body_char = get_body_connector(prev_pos, (row, col), next_pos)
+                stdscr.addch(row + 1, col + 1, body_char, curses.color_pair(2))
         
         # Draw food
         food_row, food_col = game.food
@@ -170,9 +212,36 @@ def run_game(stdscr):
     
     # Game over screen
     stdscr.clear()
-    stdscr.addstr(max_height // 2, max_width // 2 - 8, "GAME OVER!", curses.color_pair(3) | curses.A_BOLD)
-    stdscr.addstr(max_height // 2 + 2, max_width // 2 - 12, f"Final Score: {game.score}", curses.color_pair(6) | curses.A_BOLD)
-    stdscr.addstr(max_height // 2 + 4, max_width // 2 - 15, "Press any key to exit...", curses.color_pair(5))
+    
+    # Draw decorative border
+    border_char = '═'
+    for i in range(1, max_width - 1):
+        stdscr.addch(max_height // 2 - 4, i, border_char, curses.color_pair(4) | curses.A_BOLD)
+        stdscr.addch(max_height // 2 + 5, i, border_char, curses.color_pair(4) | curses.A_BOLD)
+    
+    for i in range(max_height // 2 - 4, max_height // 2 + 6):
+        stdscr.addch(i, 0, '║', curses.color_pair(4) | curses.A_BOLD)
+        stdscr.addch(i, max_width - 1, '║', curses.color_pair(4) | curses.A_BOLD)
+    
+    # Title
+    title = "GAME OVER"
+    stdscr.addstr(max_height // 2 - 3, max_width // 2 - len(title) // 2, title, curses.color_pair(3) | curses.A_BOLD)
+    
+    # Score information
+    snake_length = len(game.snake)
+    score_line = f"Final Score: {game.score}"
+    length_line = f"Snake Length: {snake_length}"
+    food_eaten = game.score // 10
+    food_line = f"Food Eaten: {food_eaten}"
+    
+    stdscr.addstr(max_height // 2, max_width // 2 - len(score_line) // 2, score_line, curses.color_pair(6) | curses.A_BOLD)
+    stdscr.addstr(max_height // 2 + 1, max_width // 2 - len(length_line) // 2, length_line, curses.color_pair(2) | curses.A_BOLD)
+    stdscr.addstr(max_height // 2 + 2, max_width // 2 - len(food_line) // 2, food_line, curses.color_pair(3) | curses.A_BOLD)
+    
+    # Exit instruction
+    exit_msg = "Press any key to exit..."
+    stdscr.addstr(max_height // 2 + 4, max_width // 2 - len(exit_msg) // 2, exit_msg, curses.color_pair(5))
+    
     stdscr.refresh()
     stdscr.getch()
 
