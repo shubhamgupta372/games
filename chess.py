@@ -9,28 +9,34 @@ from enum import Enum
 from typing import List, Tuple, Optional
 
 
-# Unicode chess piece symbols
+# Enhanced piece symbols with better visuals - no background colors
 PIECE_SYMBOLS = {
-    ('KING', True): '♔',
-    ('QUEEN', True): '♕',
-    ('ROOK', True): '♖',
-    ('BISHOP', True): '♗',
-    ('KNIGHT', True): '♘',
-    ('PAWN', True): '♙',
-    ('KING', False): '♚',
-    ('QUEEN', False): '♛',
-    ('ROOK', False): '♜',
-    ('BISHOP', False): '♝',
-    ('KNIGHT', False): '♞',
-    ('PAWN', False): '♟',
+    ('KING', True): ('♔', '\033[97m'),         # White king, bright white
+    ('QUEEN', True): ('♕', '\033[97m'),        # White queen, bright white
+    ('ROOK', True): ('♖', '\033[97m'),         # White rook, bright white
+    ('BISHOP', True): ('♗', '\033[97m'),       # White bishop, bright white
+    ('KNIGHT', True): ('♘', '\033[97m'),       # White knight, bright white
+    ('PAWN', True): ('♙', '\033[97m'),         # White pawn, bright white
+    ('KING', False): ('♚', '\033[91m'),        # Black king, red
+    ('QUEEN', False): ('♛', '\033[91m'),       # Black queen, red
+    ('ROOK', False): ('♜', '\033[91m'),        # Black rook, red
+    ('BISHOP', False): ('♝', '\033[91m'),      # Black bishop, red
+    ('KNIGHT', False): ('♞', '\033[91m'),      # Black knight, red
+    ('PAWN', False): ('♟', '\033[91m'),        # Black pawn, red
 }
 
 # ANSI color codes
 class Colors:
-    WHITE_PIECE = '\033[97m'      # Bright white
-    BLACK_PIECE = '\033[90m'      # Bright black/gray
     RESET = '\033[0m'
     BOLD = '\033[1m'
+    BEIGE_BG = "\033[48;2;245;245;220m"  # Light beige
+    BROWN_BG = "\033[48;2;139;69;19m"    # Brown
+    WHITE_PIECE = '\033[97m'             # Bright white
+    BLACK_PIECE = '\033[91m'             # Red for black pieces
+    CYAN = '\033[96m'
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
 
 
 class Piece:
@@ -38,13 +44,16 @@ class Piece:
         self.type = piece_type
         self.is_white = is_white
     
+    def get_display(self):
+        """Get colored piece symbol"""
+        symbol, color = PIECE_SYMBOLS.get((self.type, self.is_white), ('?', Colors.RESET))
+        return f"{Colors.BOLD}{color}{symbol}{Colors.RESET}"
+    
     def __str__(self):
-        symbol = PIECE_SYMBOLS.get((self.type, self.is_white), '?')
-        color = Colors.WHITE_PIECE if self.is_white else Colors.BLACK_PIECE
-        return f"{color}{Colors.BOLD}{symbol}{Colors.RESET}"
+        return self.get_display()
     
     def __repr__(self):
-        symbol = PIECE_SYMBOLS.get((self.type, self.is_white), '?')
+        symbol, _ = PIECE_SYMBOLS.get((self.type, self.is_white), ('?', Colors.RESET))
         return symbol
 
 
@@ -82,46 +91,39 @@ class ChessBoard:
         self.board[7][7] = Piece('ROOK', True)
     
     def display(self):
-        """Display the board with larger, colored squares"""
-        # ANSI color codes for beige and brown
-        BEIGE_BG = "\033[48;2;245;245;220m"  # Light beige
-        BROWN_BG = "\033[48;2;139;69;19m"   # Brown
-        RESET = "\033[0m"
-        BOLD = "\033[1m"
+        """Display the colored chess board with clean alignment"""
+        BEIGE = Colors.BEIGE_BG
+        BROWN = Colors.BROWN_BG
+        RESET = Colors.RESET
         
-        # Column labels
-        print("\n        a           b           c           d           e           f           g           h")
+        # Column labels aligned with squares
+        print(f"\n      a       b       c       d       e       f       g       h")
         
         for i in range(8):
             rank = 8 - i
             
-            # Top border of square
-            print(f"    {RESET}", end="")
-            for j in range(8):
-                bg = BROWN_BG if (i + j) % 2 == 1 else BEIGE_BG
-                print(f"{bg}           {RESET}", end="")
-            print()
+            # Build each row with proper spacing
+            row_line = f"{rank}   "
             
-            # Middle row with pieces
-            print(f"  {rank} ", end="")
             for j in range(8):
-                piece = self.board[i][j]
-                bg = BROWN_BG if (i + j) % 2 == 1 else BEIGE_BG
+                # Choose square color
+                is_brown = (i + j) % 2 == 1
+                bg = BROWN if is_brown else BEIGE
                 
+                piece = self.board[i][j]
                 if piece:
-                    print(f"{bg}{BOLD}     {piece}     {RESET}", end="")
+                    # Display piece - just the colored symbol
+                    piece_display = str(piece)
+                    row_line += f"{bg}   {piece_display}   {RESET}"
                 else:
-                    print(f"{bg}           {RESET}", end="")
-            print(f" {rank}")
+                    # Empty square
+                    row_line += f"{bg}       {RESET}"
             
-            # Bottom border of square
-            print(f"    {RESET}", end="")
-            for j in range(8):
-                bg = BROWN_BG if (i + j) % 2 == 1 else BEIGE_BG
-                print(f"{bg}           {RESET}", end="")
-            print()
+            row_line += f"{rank}"
+            print(row_line)
         
-        print("\n        a           b           c           d           e           f           g           h\n")
+        print(f"      a       b       c       d       e       f       g       h\n")
+
     
     def get_piece(self, row: int, col: int) -> Optional[Piece]:
         if 0 <= row < 8 and 0 <= col < 8:
@@ -294,11 +296,11 @@ class ChessGame:
     def play(self):
         """Main game loop"""
         print("\033[2J\033[H")  # Clear screen
-        print(f"{Colors.BOLD}\033[96m{'=' * 50}")
-        print(f"        ♔ CHESS GAME ♚")
-        print(f"{'=' * 50}{Colors.RESET}")
-        print(f"\n{Colors.WHITE_PIECE}{Colors.BOLD}You are White (bottom){Colors.RESET}")
-        print(f"{Colors.BLACK_PIECE}{Colors.BOLD}CPU is Black (top){Colors.RESET}")
+        print(f"{Colors.BOLD}{Colors.CYAN}{'=' * 60}")
+        print(f"{'':>25}♔ CHESS GAME ♚")
+        print(f"{'=' * 60}{Colors.RESET}")
+        print(f"\n{Colors.BOLD}{Colors.WHITE_PIECE}You are White (bottom){Colors.RESET}")
+        print(f"{Colors.BOLD}{Colors.BLACK_PIECE}CPU is Black (top){Colors.RESET}")
         print(f"\n{Colors.BOLD}Move notation: e2e4 (from square to square){Colors.RESET}")
         print(f"{Colors.BOLD}Type 'q' to quit, 'h' for help{Colors.RESET}\n")
         
@@ -321,24 +323,24 @@ class ChessGame:
                     
                     move = self.parse_move(move_input)
                     if not move:
-                        print(f"{Colors.BOLD}\033[91mInvalid format. Use: e2e4{Colors.RESET}")
+                        print(f"{Colors.BOLD}{Colors.RED}Invalid format. Use: e2e4{Colors.RESET}")
                         continue
                     
                     from_r, from_c, to_r, to_c = move
                     if self.board.move_piece(from_r, from_c, to_r, to_c):
                         break
                     else:
-                        print(f"{Colors.BOLD}\033[91mInvalid move. Try again.{Colors.RESET}")
+                        print(f"{Colors.BOLD}{Colors.RED}Invalid move. Try again.{Colors.RESET}")
                 
                 self.is_white_turn = False
             else:
-                print(f"{Colors.BOLD}\033[96mCPU is thinking...{Colors.RESET}")
+                print(f"{Colors.BOLD}{Colors.CYAN}CPU is thinking...{Colors.RESET}")
                 import time
                 time.sleep(1)
                 
                 move = self.ai.get_best_move()
                 if not move:
-                    print(f"{Colors.BOLD}\033[92mCheckmate! You win!{Colors.RESET}")
+                    print(f"{Colors.BOLD}{Colors.GREEN}Checkmate! You win!{Colors.RESET}")
                     return
                 
                 from_r, from_c, to_r, to_c = move
